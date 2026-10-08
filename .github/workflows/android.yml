@@ -9,98 +9,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - name: Create Android project
-        shell: bash
-        run: |
-          mkdir -p grom/app/src/main/java/ru/gromrussia/launcher
-          mkdir -p grom/app/src/main/res/values
-
-          cat > grom/settings.gradle.kts <<'EOF'
-          pluginManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
-          }
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
-          rootProject.name = "GromRussiaLauncher"
-          include(":app")
-          EOF
-
-          cat > grom/build.gradle.kts <<'EOF'
-          plugins {
-              id("com.android.application") version "8.7.3" apply false
-              id("org.jetbrains.kotlin.android") version "2.0.21" apply false
-              id("org.jetbrains.kotlin.plugin.compose") version "2.0.21" apply false
-          }
-          EOF
-
-          cat > grom/gradle.properties <<'EOF'
-          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
-          android.useAndroidX=true
-          kotlin.code.style=official
-          EOF
-
-          cat > grom/app/build.gradle.kts <<'EOF'
-          plugins {
-              id("com.android.application")
-              id("org.jetbrains.kotlin.android")
-              id("org.jetbrains.kotlin.plugin.compose")
-          }
-
-          android {
-              namespace = "ru.gromrussia.launcher"
-              compileSdk = 35
-
-              defaultConfig {
-                  applicationId = "ru.gromrussia.launcher"
-                  minSdk = 23
-                  targetSdk = 35
-                  versionCode = 1
-                  versionName = "1.0.0"
-              }
-          }
-
-          dependencies {
-              implementation(platform("androidx.compose:compose-bom:2025.01.00"))
-              implementation("androidx.activity:activity-compose:1.10.1")
-              implementation("androidx.compose.ui:ui")
-              implementation("androidx.compose.ui:ui-tooling-preview")
-              implementation("androidx.compose.material3:material3")
-              implementation("androidx.compose.material:material-icons-extended")
-          }
-          EOF
-
-          cat > grom/app/src/main/res/values/styles.xml <<'EOF'
-          <resources>
-              <style name="Theme.GromRussia" parent="android:style/Theme.Material.NoActionBar">
-                  <item name="android:fontFamily">sans</item>
-                  <item name="android:windowLightStatusBar">false</item>
-                  <item name="android:statusBarColor">#080808</item>
-                  <item name="android:navigationBarColor">#080808</item>
-              </style>
-          </resources>
-          EOF
-
-name: Build GROM RUSSIA APK
-
-on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
 
     steps:
       - name: Create Android project
@@ -175,81 +83,218 @@ jobs:
           cat > grom/app/src/main/res/values/styles.xml <<'EOF'
           <resources>
               <style name="AppTheme" parent="android:style/Theme.Material.NoActionBar">
-                  <item name="android:font) -> Unit
-          ) {
-              Column(Modifier.fillMaxSize().padding(pad)) {
-                  Header()
-                  LazyColumn(
-                      modifier = Modifier.padding(horizontal = 16.dp),
-                      verticalArrangement = Arrangement.spacedBy(10.dp)
-                  ) {
-                      items(servers.indices.toList()) { i ->
-                          Card(
-                              onClick = { choose(i) },
-                              modifier = Modifier.fillMaxWidth()
-                          ) {
-                              Row(
-                                  Modifier.fillMaxWidth().padding(16.dp),
-                                  verticalAlignment = Alignment.CenterVertically
-                              ) {
-                                  Column(Modifier.weight(1f)) {
-                                      Text(servers[i].name, fontWeight = FontWeight.Bold)
-                                      Text("${servers[i].online}/${servers[i].max} игроков")
-                                  }
-                                  Text(servers[i].status, color = Color(0xFFE53935))
-                              }
-                          }
+                  <item name="android:fontFamily">sans</item>
+                  <item name="android:windowLightStatusBar">false</item>
+                  <item name="android:statusBarColor">#000000</item>
+                  <item name="android:navigationBarColor">#000000</item>
+              </style>
+          </resources>
+          EOF
+
+          cat > grom/app/src/main/AndroidManifest.xml <<'EOF'
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <application
+                  android:theme="@style/AppTheme"
+                  android:label="GROM RUSSIA"
+                  android:allowBackup="false"
+                  android:supportsRtl="true">
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          cat > grom/app/src/main/java/com/gromrussia/launcher/MainActivity.kt <<'EOF'
+          package com.gromrussia.launcher
+
+          import android.os.Bundle
+          import androidx.activity.ComponentActivity
+          import androidx.activity.compose.setContent
+          import androidx.compose.foundation.layout.*
+          import androidx.compose.material3.*
+          import androidx.compose.runtime.*
+          import androidx.compose.ui.Alignment
+          import androidx.compose.ui.Modifier
+          import androidx.compose.ui.unit.dp
+          import androidx.compose.ui.unit.sp
+
+          class MainActivity : ComponentActivity() {
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+
+                  setContent {
+                      MaterialTheme(
+                          colorScheme = darkColorScheme()
+                      ) {
+                          GromLauncher()
                       }
                   }
               }
           }
 
           @Composable
-          fun Settings(pad: PaddingValues) {
-              Column(Modifier.fillMaxSize().padding(pad).padding(16.dp)) {
-                  Header()
-                  Text("Настройки", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                  Spacer(Modifier.height(12.dp))
-                  ListItem(
-                      headlineContent = { Text("Язык") },
-                      supportingContent = { Text("Русский") }
+          fun GromLauncher() {
+              var nickname by remember { mutableStateOf("") }
+              var selectedTab by remember { mutableStateOf(0) }
+
+              Column(
+                  modifier = Modifier
+                      .fillMaxSize()
+                      .padding(20.dp)
+              ) {
+                  Text(
+                      text = "GROM RUSSIA",
+                      fontSize = 30.sp
                   )
-                  ListItem(
-                      headlineContent = { Text("Версия лаунчера") },
-                      supportingContent = { Text("1.0.0") }
+
+                  Spacer(modifier = Modifier.height(24.dp))
+
+                  Row(
+                      modifier = Modifier.fillMaxWidth(),
+                      horizontalArrangement = Arrangement.SpaceEvenly
+                  ) {
+                      TextButton(onClick = { selectedTab = 0 }) {
+                          Text("Играть")
+                      }
+
+                      TextButton(onClick = { selectedTab = 1 }) {
+                          Text("Сервера")
+                      }
+
+                      TextButton(onClick = { selectedTab = 2 }) {
+                          Text("Настройки")
+                      }
+                  }
+
+                  Spacer(modifier = Modifier.height(24.dp))
+
+                  when (selectedTab) {
+                      0 -> {
+                          OutlinedTextField(
+                              value = nickname,
+                              onValueChange = { nickname = it },
+                              label = { Text("Никнейм") },
+                              modifier = Modifier.fillMaxWidth()
+                          )
+
+                          Spacer(modifier = Modifier.height(20.dp))
+
+                          Card(
+                              modifier = Modifier.fillMaxWidth()
+                          ) {
+                              Column(
+                                  modifier = Modifier.padding(20.dp)
+                              ) {
+                                  Text(
+                                      text = "GROM RUSSIA",
+                                      fontSize = 22.sp
+                                  )
+
+                                  Text("Сервер 01 • RED")
+
+                                  Spacer(modifier = Modifier.height(16.dp))
+
+                                  Button(
+                                      onClick = {},
+                                      modifier = Modifier.fillMaxWidth()
+                                  ) {
+                                      Text("ИГРАТЬ")
+                                  }
+                              }
+                          }
+                      }
+
+                      1 -> {
+                          Text(
+                              text = "Список серверов",
+                              fontSize = 24.sp
+                          )
+
+                          Spacer(modifier = Modifier.height(16.dp))
+
+                          Card(
+                              modifier = Modifier.fillMaxWidth()
+                          ) {
+                              Column(
+                                  modifier = Modifier.padding(20.dp)
+                              ) {
+                                  Text("Сервер 01")
+                                  Text("RED")
+                                  Text("0 / 1000 игроков")
+                              }
+                          }
+                      }
+
+                      2 -> {
+                          Text(
+                              text = "Настройки",
+                              fontSize = 24.sp
+                          )
+
+                          Spacer(modifier = Modifier.height(16.dp))
+
+                          Text("Версия лаунчера: 1.0")
+                          Spacer(modifier = Modifier.height(8.dp))
+                          Text("Проверка обновлений")
+                          Spacer(modifier = Modifier.height(8.dp))
+                          Text("Язык: Русский")
+                      }
+                  }
+
+                  Spacer(modifier = Modifier.weight(1f))
+
+                  LinearProgressIndicator(
+                      modifier = Modifier.fillMaxWidth()
                   )
-                  ListItem(
-                      headlineContent = { Text("Проверка файлов") },
-                      supportingContent = { Text("Проверить целостность игры") }
+
+                  Spacer(modifier = Modifier.height(8.dp))
+
+                  Text(
+                      text = "GROM RUSSIA • Launcher 1.0",
+                      fontSize = 12.sp,
+                      modifier = Modifier.align(Alignment.CenterHorizontally)
                   )
               }
           }
           EOF
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+      - name: Set up Java
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: '17'
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
+          java-version: "17"
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
+
+      - name: Accept Android SDK licenses
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses || true
 
       - name: Install Android SDK
-        run: sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+        shell: bash
+        run: |
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
+        with:
+          gradle-version: "8.9"
 
       - name: Build APK
         working-directory: grom
-        run: gradle assembleDebug --no-daemon
+        run: |
+          gradle assembleDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: GROM-RUSSIA-APK
           path: grom/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
