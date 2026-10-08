@@ -90,171 +90,92 @@ jobs:
           </resources>
           EOF
 
-          cat > grom/app/src/main/AndroidManifest.xml <<'EOF'
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <uses-permission android:name="android.permission.INTERNET" />
-              <application
-                  android:theme="@style/Theme.GromRussia"
-                  android:label="GROM RUSSIA"
-                  android:allowBackup="false"
-                  android:supportsRtl="true">
-                  <activity
-                      android:name=".MainActivity"
-                      android:exported="true">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
-                      </intent-filter>
-                  </activity>
-              </application>
-          </manifest>
+name: Build GROM RUSSIA APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create Android project
+        shell: bash
+        run: |
+          mkdir -p grom/app/src/main/java/com/gromrussia/launcher
+          mkdir -p grom/app/src/main/res/values
+
+          cat > grom/settings.gradle.kts <<'EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+
+          dependencyResolutionManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+
+          rootProject.name = "GROM-RUSSIA"
+          include(":app")
           EOF
 
-          cat > grom/app/src/main/java/ru/gromrussia/launcher/MainActivity.kt <<'EOF'
-          package ru.gromrussia.launcher
+          cat > grom/build.gradle.kts <<'EOF'
+          plugins {
+              id("com.android.application") version "8.7.3" apply false
+              id("org.jetbrains.kotlin.android") version "2.0.21" apply false
+          }
+          EOF
 
-          import android.os.Bundle
-          import androidx.activity.ComponentActivity
-          import androidx.activity.compose.setContent
-          import androidx.compose.foundation.background
-          import androidx.compose.foundation.layout.*
-          import androidx.compose.foundation.lazy.LazyColumn
-          import androidx.compose.foundation.lazy.items
-          import androidx.compose.material.icons.Icons
-          import androidx.compose.material.icons.filled.PlayArrow
-          import androidx.compose.material.icons.filled.Settings
-          import androidx.compose.material.icons.filled.Storage
-          import androidx.compose.material3.*
-          import androidx.compose.runtime.*
-          import androidx.compose.ui.Alignment
-          import androidx.compose.ui.Modifier
-          import androidx.compose.ui.graphics.Color
-          import androidx.compose.ui.text.font.FontWeight
-          import androidx.compose.ui.unit.dp
-          import androidx.compose.ui.unit.sp
+          cat > grom/gradle.properties <<'EOF'
+          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+          android.useAndroidX=true
+          kotlin.code.style=official
+          EOF
 
-          class MainActivity : ComponentActivity() {
-              override fun onCreate(savedInstanceState: Bundle?) {
-                  super.onCreate(savedInstanceState)
-                  setContent { GromApp() }
+          cat > grom/app/build.gradle.kts <<'EOF'
+          plugins {
+              id("com.android.application")
+              id("org.jetbrains.kotlin.android")
+          }
+
+          android {
+              namespace = "com.gromrussia.launcher"
+              compileSdk = 35
+
+              defaultConfig {
+                  applicationId = "com.gromrussia.launcher"
+                  minSdk = 23
+                  targetSdk = 35
+                  versionCode = 1
+                  versionName = "1.0"
               }
           }
 
-          data class Server(
-              val name: String,
-              val online: Int,
-              val max: Int,
-              val status: String
-          )
-
-          @Composable
-          fun GromApp() {
-              var tab by remember { mutableStateOf(0) }
-              var nick by remember { mutableStateOf("") }
-              var selected by remember { mutableStateOf(0) }
-              val servers = listOf(Server("GROM RUSSIA | Server 01", 0, 1000, "RED"))
-
-              MaterialTheme(
-                  colorScheme = darkColorScheme(
-                      background = Color(0xFF080808),
-                      surface = Color(0xFF121212),
-                      primary = Color(0xFFE53935)
-                  )
-              ) {
-                  Scaffold(
-                      containerColor = Color(0xFF080808),
-                      bottomBar = {
-                          NavigationBar(containerColor = Color(0xFF101010)) {
-                              NavigationBarItem(
-                                  selected = tab == 0,
-                                  onClick = { tab = 0 },
-                                  icon = { Icon(Icons.Default.PlayArrow, null) },
-                                  label = { Text("Играть") }
-                              )
-                              NavigationBarItem(
-                                  selected = tab == 1,
-                                  onClick = { tab = 1 },
-                                  icon = { Icon(Icons.Default.Storage, null) },
-                                  label = { Text("Сервера") }
-                              )
-                              NavigationBarItem(
-                                  selected = tab == 2,
-                                  onClick = { tab = 2 },
-                                  icon = { Icon(Icons.Default.Settings, null) },
-                                  label = { Text("Настройки") }
-                              )
-                          }
-                      }
-                  ) { pad ->
-                      when (tab) {
-                          0 -> Home(pad, nick, { nick = it }, servers[selected])
-                          1 -> Servers(pad, servers, selected) { selected = it }
-                          else -> Settings(pad)
-                      }
-                  }
-              }
+          dependencies {
+              implementation("androidx.core:core-ktx:1.15.0")
+              implementation("androidx.activity:activity-compose:1.10.1")
+              implementation(platform("androidx.compose:compose-bom:2025.01.00"))
+              implementation("androidx.compose.ui:ui")
+              implementation("androidx.compose.ui:ui-tooling-preview")
+              implementation("androidx.compose.material3:material3")
+              implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
           }
+          EOF
 
-          @Composable
-          fun Header() {
-              Column(Modifier.padding(24.dp)) {
-                  Text("GROM", fontSize = 36.sp, fontWeight = FontWeight.Black)
-                  Text("RUSSIA", fontSize = 21.sp, fontWeight = FontWeight.Bold)
-                  Text("OFFICIAL LAUNCHER", color = Color.Gray, fontSize = 11.sp)
-              }
-          }
-
-          @Composable
-          fun Home(
-              pad: PaddingValues,
-              nick: String,
-              setNick: (String) -> Unit,
-              server: Server
-          ) {
-              Column(
-                  Modifier.fillMaxSize().padding(pad).padding(16.dp)
-              ) {
-                  Header()
-                  Text("Ваш ник", color = Color.Gray)
-                  OutlinedTextField(
-                      value = nick,
-                      onValueChange = setNick,
-                      modifier = Modifier.fillMaxWidth(),
-                      singleLine = true,
-                      placeholder = { Text("Введите ник") }
-                  )
-                  Spacer(Modifier.height(18.dp))
-                  Card(Modifier.fillMaxWidth()) {
-                      Column(Modifier.padding(18.dp)) {
-                          Text(server.name, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                          Text("${server.online}/${server.max} игроков")
-                          Text("Статус: ${server.status}", color = Color(0xFFE53935))
-                      }
-                  }
-                  Spacer(Modifier.height(20.dp))
-                  Button(
-                      onClick = {},
-                      modifier = Modifier.fillMaxWidth().height(56.dp)
-                  ) {
-                      Icon(Icons.Default.PlayArrow, null)
-                      Spacer(Modifier.width(8.dp))
-                      Text("ИГРАТЬ")
-                  }
-                  Spacer(Modifier.height(18.dp))
-                  LinearProgressIndicator(
-                      progress = { 0f },
-                      modifier = Modifier.fillMaxWidth()
-                  )
-                  Text("Игра не загружена", color = Color.Gray, fontSize = 12.sp)
-              }
-          }
-
-          @Composable
-          fun Servers(
-              pad: PaddingValues,
-              servers: List<Server>,
-              selected: Int,
-              choose: (Int) -> Unit
+          cat > grom/app/src/main/res/values/styles.xml <<'EOF'
+          <resources>
+              <style name="AppTheme" parent="android:style/Theme.Material.NoActionBar">
+                  <item name="android:font) -> Unit
           ) {
               Column(Modifier.fillMaxSize().padding(pad)) {
                   Header()
