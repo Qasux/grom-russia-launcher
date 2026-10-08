@@ -2,10 +2,9 @@ name: Build GROM RUSSIA APK
 
 on:
   workflow_dispatch:
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
+  push:
+    branches:
+      - main
 
     steps:
       - name: Create Android project
